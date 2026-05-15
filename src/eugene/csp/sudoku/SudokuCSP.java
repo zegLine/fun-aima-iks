@@ -6,11 +6,15 @@ import aima.core.search.csp.Variable;
 import aima.core.search.csp.examples.NotEqualConstraint;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class SudokuCSP extends CSP<Variable, Integer> {
 
+	private final int size;
+
 	public SudokuCSP(int size) {
+		this.size = size;
 		int boxSize = (int) Math.sqrt(size);
 
 		for (int r = 0; r < size; r++)
@@ -51,5 +55,21 @@ public class SudokuCSP extends CSP<Variable, Integer> {
 				}
 			}
 		}
+	}
+
+	public void setValue(int row, int col, int value) {
+		if (row < 1 || row > size || col < 1 || col > size)
+			throw new IllegalArgumentException("Position (" + row + "," + col + ") out of range 1.." + size);
+		if (value < 1 || value > size)
+			throw new IllegalArgumentException("Value " + value + " out of range 1.." + size);
+		Variable var = getVariables().get((row - 1) * size + (col - 1));
+		setDomain(var, new Domain<>(Collections.singletonList(value)));
+	}
+
+	public void setValues(int[][] grid) {
+		for (int r = 0; r < grid.length; r++)
+			for (int c = 0; c < grid[r].length; c++)
+				if (grid[r][c] != 0)
+					setValue(r + 1, c + 1, grid[r][c]);
 	}
 }
