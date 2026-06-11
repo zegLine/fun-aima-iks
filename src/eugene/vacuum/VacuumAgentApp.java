@@ -78,7 +78,7 @@ public class VacuumAgentApp extends IntegrableApplication {
                 "A/B Non-Deterministic Environment", "Small Maze Environment", "Maze Environment", "Eugene Env");
         Parameter p2 = new Parameter(PARAM_AGENT, "TableDrivenVacuumAgent", "ReflexVacuumAgent",
                 "SimpleReflexVacuumAgent", "ModelBasedReflexVacuumAgent", "NondeterministicVacuumAgent",
-                "RandomWalkVacuumAgent");
+                "EugenesCompetitionVacuumAgent");
         return Arrays.asList(p1, p2);
     }
 
@@ -121,7 +121,7 @@ public class VacuumAgentApp extends IntegrableApplication {
                 agent = new NondeterministicSearchAgent<>(VacuumWorldFunctions::getState, env);
                 break;
             case 5:
-                agent = new RandomWalkVacuumAgent();
+                agent = new EugenesCompetitionVacuumAgent();
                 break;
         }
         if (env != null && agent != null) {

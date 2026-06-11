@@ -17,7 +17,7 @@ import static aima.core.environment.vacuum.MazeVacuumEnvironment.*;
  *
  * @author Ruediger Lunde
  */
-public class RandomWalkVacuumAgent extends SimpleAgent<VacuumPercept, Action> {
+public class EugenesCompetitionVacuumAgent extends SimpleAgent<VacuumPercept, Action> {
 
     private Action lastMoveAction;
 
