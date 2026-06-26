@@ -22,7 +22,7 @@ public class EugenesCompetitionVacuumAgent extends SimpleAgent<VacuumPercept, Ac
     int x = 0;
     int y = 0;
     private final Set<String> set_visited = new HashSet<>();
-    private final Deque<Action> bt = new ArrayDeque<>(); // steps that lead back home
+    private final Deque<Action> backtrack_actions = new ArrayDeque<>(); // steps thatgo back home
 
     @Override
     public Optional<Action> act(VacuumPercept percept) {
@@ -33,16 +33,16 @@ public class EugenesCompetitionVacuumAgent extends SimpleAgent<VacuumPercept, Ac
             return Optional.of(ACTION_SUCK);
 
         // go to a neighbour that is notseen yet
-        Action move = firstUnvisited(percept);
+        Action move = first_not_visited(percept);
         if (move != null) {
-            bt.push(opposite(move));
+            backtrack_actions.push(opposite(move));
             apply(move);
             return Optional.of(move);
         }
 
-        // dead end -> retrace one step toward the start
-        if (!bt.isEmpty()) {
-            Action back = bt.pop();
+        // dead end -> retrace one step towards the start
+        if (!backtrack_actions.isEmpty()) {
+            Action back = backtrack_actions.pop();
             apply(back);
             return Optional.of(back);
         }
@@ -51,7 +51,7 @@ public class EugenesCompetitionVacuumAgent extends SimpleAgent<VacuumPercept, Ac
         return Optional.of(ACTION_SUCK);
     }
 
-    private Action firstUnvisited(VacuumPercept p) {
+    private Action first_not_visited(VacuumPercept p) {
         if (canGo(p, ATT_CAN_MOVE_UP) && unseen(x, y + 1)) return ACTION_MOVE_UP;
         if (canGo(p, ATT_CAN_MOVE_RIGHT) && unseen(x + 1, y)) return ACTION_MOVE_RIGHT;
         if (canGo(p, ATT_CAN_MOVE_DOWN) && unseen(x, y - 1)) return ACTION_MOVE_DOWN;
