@@ -1,0 +1,219 @@
+package eugene.vacuum;
+
+import aima.core.agent.Action;
+import aima.core.agent.impl.SimpleAgent;
+import aima.core.environment.vacuum.*;
+import aima.core.search.agent.NondeterministicSearchAgent;
+import aima.core.search.nondeterministic.NondeterministicProblem;
+import aima.core.util.Tasks;
+import aima.gui.fx.framework.IntegrableApplication;
+import aima.gui.fx.framework.Parameter;
+import aima.gui.fx.framework.TaskExecutionPaneBuilder;
+import aima.gui.fx.framework.TaskExecutionPaneCtrl;
+import aima.gui.fx.views.SimpleEnvironmentViewCtrl;
+import aima.gui.fx.views.VacuumEnvironmentViewCtrl;
+import javafx.geometry.Pos;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
+import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Pane;
+import javafx.scene.layout.StackPane;
+
+import java.util.Arrays;
+import java.util.List;
+
+// VM options (Java>8): --module-path ${PATH_TO_FX} --add-modules javafx.controls,javafx.fxml
+
+/**
+ * Integrable application which demonstrates how different kinds of vacuum
+ * cleaner agents behave in a two square environment.
+ *
+ * @author Ruediger Lunde
+ */
+public class VacuumAgentAppSeed extends IntegrableApplication {
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+
+    public final static String PARAM_ENV = "environment";
+    public final static String PARAM_AGENT = "agent";
+
+    protected TaskExecutionPaneCtrl taskPaneCtrl;
+    protected SimpleEnvironmentViewCtrl<VacuumPercept, Action> envViewCtrl;
+    protected CheckBox seedEnabledCheckBox;
+    protected TextField seedField;
+    protected VacuumEnvironment env = null;
+    protected SimpleAgent<VacuumPercept, Action> agent = null;
+
+    @Override
+    public String getTitle() {
+        return "Vacuum Agent App";
+    }
+
+    /**
+     * Defines state view, parameters, and call-back functions and calls the
+     * simulation pane builder to create layout and controller objects.
+     */
+    @Override
+    public Pane createRootPane() {
+        BorderPane root = new BorderPane();
+
+        StackPane envView = new StackPane();
+		envViewCtrl = new VacuumEnvironmentViewCtrl(envView, action -> {
+			if (action == VacuumEnvironment.ACTION_MOVE_LEFT) return 270.0;
+			else if (action == VacuumEnvironment.ACTION_MOVE_RIGHT) return 90.0;
+			else if (action == MazeVacuumEnvironment.ACTION_MOVE_UP) return 0.0;
+			else if (action == MazeVacuumEnvironment.ACTION_MOVE_DOWN) return 180.0;
+			else return null;
+		});
+
+        List<Parameter> params = createParameters();
+
+        TaskExecutionPaneBuilder builder = new TaskExecutionPaneBuilder();
+        builder.defineParameters(params);
+        builder.defineStateView(envView);
+        builder.defineInitMethod(this::initialize);
+        builder.defineTaskMethod(this::startExperiment);
+        taskPaneCtrl = builder.getResultFor(root);
+
+        // Add seed input field to the toolbar
+        seedEnabledCheckBox = new CheckBox("Use Seed");
+        seedEnabledCheckBox.setSelected(false);
+        seedField = new TextField("404");
+        seedField.setPrefWidth(80);
+        seedField.setStyle("-fx-control-inner-background: #f0f0f0; -fx-padding: 5;");
+        seedField.setDisable(true);
+        Label seedLabel = new Label("Seed:");
+        HBox seedBox = new HBox(5);
+        seedBox.setAlignment(Pos.CENTER_LEFT);
+        seedBox.getChildren().addAll(seedEnabledCheckBox, seedLabel, seedField);
+        seedBox.setStyle("-fx-padding: 0 10 0 10;");
+
+        // Add listener to enable/disable seed field based on checkbox
+        seedEnabledCheckBox.selectedProperty().addListener((obs, oldVal, newVal) ->
+                seedField.setDisable(!newVal)
+        );
+
+        // Insert seed input into toolbar
+        javafx.scene.control.ToolBar toolbar = (javafx.scene.control.ToolBar) root.getTop();
+        int separatorIndex = -1;
+        for (int i = 0; i < toolbar.getItems().size(); i++) {
+            if (toolbar.getItems().get(i) instanceof javafx.scene.control.Separator) {
+                separatorIndex = i;
+                break;
+            }
+        }
+        if (separatorIndex != -1) {
+            toolbar.getItems().add(separatorIndex + 1, seedBox);
+        }
+
+        return root;
+    }
+
+    /**
+     * Provides the selected seed for initialize method and subclasses.
+     */
+    protected long getSeed() {
+        long seed;
+        boolean useSeed = seedEnabledCheckBox.isSelected();
+
+        if (useSeed) {
+            try {
+                seed = Long.parseLong(seedField.getText().trim());
+            } catch (NumberFormatException e) {
+                seed = 404;
+                seedField.setText("404");
+            }
+        } else {
+            seed = System.currentTimeMillis();
+        }
+        return seed;
+    }
+
+    protected List<Parameter> createParameters() {
+        Parameter p1 = new Parameter(PARAM_ENV, "A/B Deterministic Environment",
+                "A/B Non-Deterministic Environment", "Small Maze Environment", "Maze Environment");
+        Parameter p2 = new Parameter(PARAM_AGENT, "TableDrivenVacuumAgent", "ReflexVacuumAgent",
+                "SimpleReflexVacuumAgent", "ModelBasedReflexVacuumAgent", "NondeterministicVacuumAgent",
+                "RandomWalkVacuumAgent", "EugenesCompetitionVacuumAgent");
+        return Arrays.asList(p1, p2);
+    }
+
+    /**
+     * Is called after each parameter selection change.
+     */
+    @Override
+    public void initialize() {
+        switch (taskPaneCtrl.getParamValueIndex(PARAM_ENV)) {
+            case 0:
+                env = new VacuumEnvironment();
+                break;
+            case 1:
+                env = new NondeterministicVacuumEnvironment();
+                break;
+            case 2:
+                env = new MazeVacuumEnvironment(5, 5, 0.5, 0.2, getSeed());
+                break;
+            case 3:
+                env = new MazeVacuumEnvironment(10, 10, 0.8, 0.3, getSeed());
+                break;
+        }
+        switch (taskPaneCtrl.getParamValueIndex(PARAM_AGENT)) {
+            case 0:
+                agent = new TableDrivenVacuumAgent();
+                break;
+            case 1:
+                agent = new ReflexVacuumAgent();
+                break;
+            case 2:
+                agent = new SimpleReflexVacuumAgent();
+                break;
+            case 3:
+                agent = new ModelBasedReflexVacuumAgent();
+                break;
+            case 4:
+                agent = new NondeterministicSearchAgent<>(VacuumWorldFunctions::getState, env);
+                break;
+            case 5:
+                agent = new RandomWalkVacuumAgent();
+                break;
+            case 6:
+                agent = new EugenesCompetitionVacuumAgent();
+                break;
+        }
+        if (env != null && agent != null) {
+            envViewCtrl.initialize(env);
+            env.addEnvironmentListener(envViewCtrl);
+            env.addAgent(agent);
+            //env.addAgent(agent, env.getLocation(1,1)); // hack!
+        }
+    }
+
+    /**
+     * Starts the experiment.
+     */
+    public void startExperiment() {
+        if (agent instanceof NondeterministicSearchAgent) {
+            NondeterministicProblem<VacuumEnvironmentState, Action> problem =
+                    new NondeterministicProblem<>(env.getCurrentState(),
+                            VacuumWorldFunctions::getActions, VacuumWorldFunctions.createResultsFunctionFor(agent),
+                            VacuumWorldFunctions::testGoal, (s, a, sPrimed) -> 1.0);
+            // Set the problem now for this kind of agent
+            ((NondeterministicSearchAgent<VacuumPercept, VacuumEnvironmentState, Action>) agent).makePlan(problem);
+        }
+        while (!env.isDone() && !Tasks.currIsCancelled()) {
+            env.step();
+            taskPaneCtrl.setStatus("Performance=" + env.getPerformanceMeasure(agent));
+            taskPaneCtrl.waitAfterStep();
+        }
+        envViewCtrl.notify("Performance=" + env.getPerformanceMeasure(agent));
+    }
+
+    @Override
+    public void cleanup() {
+        taskPaneCtrl.cancelExecution();
+    }
+}
